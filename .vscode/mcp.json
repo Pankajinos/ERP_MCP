@@ -1,0 +1,24 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "erp-auth-token",
+      "description": "MANIT ERP token (without the Bearer prefix)",
+      "password": true
+    }
+  ],
+  "servers": {
+    "studentErp": {
+      "type": "stdio",
+      "command": "java",
+      "args": [
+        "-jar",
+        "${workspaceFolder}/target/student-erp-mcp-server-1.0.0-SNAPSHOT.jar"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "ERP_AUTH_TOKEN": "${input:erp-auth-token}"
+      }
+    }
+  }
+}

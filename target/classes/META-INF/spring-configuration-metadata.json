@@ -1,0 +1,82 @@
+{
+  "groups": [
+    {
+      "name": "erp",
+      "type": "com.manit.erp.mcp.config.ErpProperties",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties"
+    },
+    {
+      "name": "erp.api",
+      "type": "com.manit.erp.mcp.config.ErpProperties$Api",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties",
+      "sourceMethod": "public com.manit.erp.mcp.config.ErpProperties.Api getApi() "
+    },
+    {
+      "name": "erp.client",
+      "type": "com.manit.erp.mcp.config.ErpProperties$Client",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties",
+      "sourceMethod": "public com.manit.erp.mcp.config.ErpProperties.Client getClient() "
+    }
+  ],
+  "properties": [
+    {
+      "name": "erp.api.auth-token",
+      "type": "java.lang.String",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.base-url",
+      "type": "java.lang.String",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.default-program-id",
+      "type": "java.lang.Integer",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.default-student-uid",
+      "type": "java.lang.Integer",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.fee-path",
+      "type": "java.lang.String",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.registration-path",
+      "type": "java.lang.String",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.api.result-path",
+      "type": "java.lang.String",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Api"
+    },
+    {
+      "name": "erp.client.backoff-period-ms",
+      "type": "java.lang.Long",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Client"
+    },
+    {
+      "name": "erp.client.connect-timeout-ms",
+      "type": "java.lang.Integer",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Client"
+    },
+    {
+      "name": "erp.client.max-retry-attempts",
+      "type": "java.lang.Integer",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Client"
+    },
+    {
+      "name": "erp.client.read-timeout-ms",
+      "type": "java.lang.Integer",
+      "sourceType": "com.manit.erp.mcp.config.ErpProperties$Client"
+    }
+  ],
+  "hints": [],
+  "ignored": {
+    "properties": []
+  }
+}
