@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
@@ -34,12 +35,8 @@ class AcademicToolsTest {
     @Mock
     private StudentDashboardService studentDashboardService;
 
+    @InjectMocks
     private AcademicTools academicTools;
-
-    @BeforeEach
-    void setUp() {
-        academicTools = new AcademicTools(academicService, registrationService, feeService, studentDashboardService);
-    }
 
     @Test
     void testGetAcademicSummary_ToolExecution() {

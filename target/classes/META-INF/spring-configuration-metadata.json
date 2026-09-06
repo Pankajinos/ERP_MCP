@@ -9,13 +9,13 @@
       "name": "erp.api",
       "type": "com.manit.erp.mcp.config.ErpProperties$Api",
       "sourceType": "com.manit.erp.mcp.config.ErpProperties",
-      "sourceMethod": "public com.manit.erp.mcp.config.ErpProperties.Api getApi() "
+      "sourceMethod": "getApi()"
     },
     {
       "name": "erp.client",
       "type": "com.manit.erp.mcp.config.ErpProperties$Client",
       "sourceType": "com.manit.erp.mcp.config.ErpProperties",
-      "sourceMethod": "public com.manit.erp.mcp.config.ErpProperties.Client getClient() "
+      "sourceMethod": "getClient()"
     }
   ],
   "properties": [

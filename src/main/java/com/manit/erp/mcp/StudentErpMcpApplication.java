@@ -10,7 +10,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @SpringBootApplication
 @EnableConfigurationProperties
 public class StudentErpMcpApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(StudentErpMcpApplication.class, args);
     }

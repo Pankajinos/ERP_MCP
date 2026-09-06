@@ -5,6 +5,7 @@ import com.manit.erp.mcp.services.AcademicService;
 import com.manit.erp.mcp.services.FeeService;
 import com.manit.erp.mcp.services.RegistrationService;
 import com.manit.erp.mcp.services.StudentDashboardService;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  * to Claude Desktop and GitHub Copilot Chat.
  */
 @Component
+@RequiredArgsConstructor
 public class AcademicTools {
 
     private static final Logger log = LoggerFactory.getLogger(AcademicTools.class);
@@ -25,24 +27,13 @@ public class AcademicTools {
     private final FeeService feeService;
     private final StudentDashboardService studentDashboardService;
 
-    public AcademicTools(
-            AcademicService academicService,
-            RegistrationService registrationService,
-            FeeService feeService,
-            StudentDashboardService studentDashboardService) {
-        this.academicService = academicService;
-        this.registrationService = registrationService;
-        this.feeService = feeService;
-        this.studentDashboardService = studentDashboardService;
-    }
-
     /**
      * Tool 1: getAcademicSummary
      * Returns an overall academic summary including CGPA, program name, and
      * semester-by-semester SGPA.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * AcademicSummaryResponse summary = academicTools.getAcademicSummary();
      * }</pre>
@@ -67,7 +58,7 @@ public class AcademicTools {
      * registered subjects with faculty, and fees.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * SemesterDetailsResponse details = academicTools.getSemesterDetails(5);
      * }</pre>
@@ -94,7 +85,7 @@ public class AcademicTools {
      * endterm marks, total marks, grade, and credits.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * SubjectDetailsResponse subject = academicTools.getSubjectDetails("MDS316");
      * }</pre>
@@ -120,7 +111,7 @@ public class AcademicTools {
      * active semester.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * RegistrationInfoResponse regInfo = academicTools.getRegistrationInfo(5);
      * }</pre>
@@ -148,7 +139,7 @@ public class AcademicTools {
      * Fee, and Other Fee.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * FeeInfoResponse feeInfo = academicTools.getFeeInfo(5, 2025);
      * }</pre>
@@ -176,7 +167,7 @@ public class AcademicTools {
      * credit values matching the query.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * AcademicSearchResultResponse searchResults = academicTools.searchAcademicRecords("A grade");
      * }</pre>
@@ -202,7 +193,7 @@ public class AcademicTools {
      * Returns top-level executive student dashboard summarizing student metrics.
      *
      * Example Java Usage:
-     * 
+     *
      * <pre>{@code
      * StudentDashboardResponse dashboard = academicTools.getStudentDashboard();
      * }</pre>
