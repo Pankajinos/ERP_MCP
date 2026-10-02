@@ -17,12 +17,45 @@ public record RegistrationErpResponse(
         @JsonProperty("feesStatus") String feesStatus,
         @JsonProperty("feesAmount") String feesAmount,
         @JsonProperty("credits") String credits,
+        @JsonProperty("semesterDetails1") String semesterDetails1,
         @JsonProperty("full_name") String fullName,
         @JsonProperty("gender") String gender,
         @JsonProperty("roll_no") String rollNo,
         @JsonProperty("depname") String depName,
         @JsonProperty("subjects") List<RegisteredSubject> subjects
 ) {
+    public RegistrationErpResponse(
+            Object regSession,
+            Integer regSemesterTypeIdCode,
+            String currentStatus,
+            String creationTime,
+            Integer semesterTermNoIdCode,
+            String feesStatus,
+            String feesAmount,
+            String credits,
+            String fullName,
+            String gender,
+            String rollNo,
+            String depName,
+            List<RegisteredSubject> subjects
+    ) {
+        this(
+                regSession,
+                regSemesterTypeIdCode,
+                currentStatus,
+                creationTime,
+                semesterTermNoIdCode,
+                feesStatus,
+                feesAmount,
+                credits,
+                null,
+                fullName,
+                gender,
+                rollNo,
+                depName,
+                subjects
+        );
+    }
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record RegisteredSubject(
             @JsonProperty("subject_master_id") Object subjectMasterId,

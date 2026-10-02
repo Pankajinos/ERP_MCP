@@ -1,17 +1,12 @@
 package com.manit.erp.mcp.services;
 
-import com.manit.erp.mcp.dto.tool.AcademicSearchResultResponse;
-import com.manit.erp.mcp.dto.tool.AcademicSummaryResponse;
-import com.manit.erp.mcp.dto.tool.SemesterDetailsResponse;
-import com.manit.erp.mcp.dto.tool.SubjectDetailsResponse;
+import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
+import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
 import reactor.core.publisher.Mono;
 
-/**
- * Service interface encapsulating academic metrics and search capabilities.
- */
 public interface AcademicService {
-    Mono<AcademicSummaryResponse> getAcademicSummary();
-    Mono<SemesterDetailsResponse> getSemesterDetails(int semester);
-    Mono<SubjectDetailsResponse> getSubjectDetails(String subjectCode);
-    Mono<AcademicSearchResultResponse> searchAcademicRecords(String query);
+
+    Mono<SubjectMarksResponse> getSubjectMarks(String subject);
+
+    Mono<SubjectFacultyResponse> getSubjectFaculty(String subject);
 }

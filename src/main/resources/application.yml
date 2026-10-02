@@ -17,7 +17,7 @@ erp:
     result-path: /student_result
     registration-path: /fetch_register
     fee-path: /student_fees
-    auth-token: ${ERP_AUTH_TOKEN:mock-bearer-token-12345}
+    auth-token: ${ERP_AUTH_TOKEN:${ERP_AUTH_TOKEN:mock-bearer-token-12345}}
     default-student-uid: ${STUDENT_UID:4705}
     default-program-id: ${PROGRAM_ID:82}
   client:

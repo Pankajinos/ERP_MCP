@@ -48,6 +48,7 @@ public class WebClientConfig {
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
                 .filter(logRequestAndHeaders())
                 .filter(logResponse())
                 .build();
@@ -56,6 +57,10 @@ public class WebClientConfig {
     private ExchangeFilterFunction logRequestAndHeaders() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
             log.debug("Outgoing ERP Request: [{}] {}", clientRequest.method(), clientRequest.url());
+            String auth = clientRequest.headers().getFirst(HttpHeaders.AUTHORIZATION);
+            if (auth == null || auth.isBlank() || auth.contains("mock-bearer-token-12345")) {
+                log.warn("⚠️ ERP API call using missing or mock token! Ensure ERP_AUTH_TOKEN is configured with a valid token.");
+            }
             return Mono.just(clientRequest);
         });
     }

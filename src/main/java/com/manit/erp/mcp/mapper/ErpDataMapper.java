@@ -3,362 +3,285 @@ package com.manit.erp.mcp.mapper;
 import com.manit.erp.mcp.dto.erp.FeeErpResponse;
 import com.manit.erp.mcp.dto.erp.RegistrationErpResponse;
 import com.manit.erp.mcp.dto.erp.ResultErpResponse;
-import com.manit.erp.mcp.dto.tool.*;
+import com.manit.erp.mcp.dto.tool.FeeDetailResponse;
+import com.manit.erp.mcp.dto.tool.FeePerSemesterResponse;
+import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
+import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
+import com.manit.erp.mcp.exception.ResourceNotFoundException;
 import com.manit.erp.mcp.util.CalculationUtils;
-import com.manit.erp.mcp.util.FeeCategorizer;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Mapper component converting raw, verbose ERP DTOs into minimal, high-value business DTOs.
+ * Mapper component converting raw ERP responses into granular MCP tool DTOs.
  */
 @Component
 public class ErpDataMapper {
 
-    public AcademicSummaryResponse toAcademicSummary(ResultErpResponse erpResponse) {
-        if (erpResponse == null || erpResponse.data() == null) {
-            return new AcademicSummaryResponse("Unknown Student", "Unknown Program", 0.0, List.of());
-        }
+    private static final Pattern SEM_NUMBER_PATTERN = Pattern.compile("(?:sem(?:ester)?[-_\\s]*|^)(\\d+)(?:st|nd|rd|th|\\b)", Pattern.CASE_INSENSITIVE);
 
-        String studentName = "Student";
-        String program = "Program";
+    public FeePerSemesterResponse toFeePerSemester(int semester, FeeErpResponse feeErp) {
+        List<FeePerSemesterResponse.FeeItemDetail> items = new ArrayList<>();
+        double total = 0.0;
 
-        if (erpResponse.data().basicDetails() != null && !erpResponse.data().basicDetails().isEmpty()) {
-            ResultErpResponse.BasicDetail basic = erpResponse.data().basicDetails().get(0);
-            if (basic.fullName() != null && !basic.fullName().isBlank()) studentName = basic.fullName();
-            if (basic.programName() != null && !basic.programName().isBlank()) program = basic.programName();
-        }
+        List<FeeErpResponse.FeeItem> sourceList = (feeErp != null) ? feeErp.allItems() : List.of();
+        for (FeeErpResponse.FeeItem item : sourceList) {
+            if (matchesSemester(item, semester)) {
+                double amt = extractAmount(item);
+                String head = extractFeeHead(item);
+                String session = extractSession(item);
+                String semDesc = extractSemesterDesc(item, semester);
 
-        List<AcademicSummaryResponse.SemesterBreakdown> breakdown = new ArrayList<>();
-        double totalWeightedSgpa = 0.0;
-        double totalCreditsAllSemesters = 0.0;
-
-        List<ResultErpResponse.SemesterDataItem> semList = erpResponse.data().semesterData();
-        if (semList != null) {
-            for (int i = 0; i < semList.size(); i++) {
-                ResultErpResponse.SemesterDataItem item = semList.get(i);
-                if (item.data() == null || item.data().grandTotal() == null) continue;
-
-                ResultErpResponse.GrandTotal gt = item.data().grandTotal();
-                int semNum = i + 1;
-                double sgpa = CalculationUtils.parseDoubleSafely(gt.sgpa());
-                double credits = CalculationUtils.parseDoubleSafely(gt.totalCredits());
-
-                breakdown.add(new AcademicSummaryResponse.SemesterBreakdown(semNum, sgpa, credits));
-
-                if (credits > 0) {
-                    totalWeightedSgpa += (sgpa * credits);
-                    totalCreditsAllSemesters += credits;
-                }
+                items.add(new FeePerSemesterResponse.FeeItemDetail(head, amt, session, semDesc));
+                total += amt;
             }
         }
 
-        double cgpa = (totalCreditsAllSemesters > 0)
-                ? CalculationUtils.roundToTwoDecimals(totalWeightedSgpa / totalCreditsAllSemesters)
-                : 0.0;
-
-        return new AcademicSummaryResponse(studentName, program, cgpa, breakdown);
+        double roundedTotal = CalculationUtils.roundToTwoDecimals(total);
+        return new FeePerSemesterResponse(semester, roundedTotal, items.size(), items);
     }
 
-    public SemesterDetailsResponse toSemesterDetails(
-            int semester,
-            ResultErpResponse resultErp,
-            List<RegistrationErpResponse> regList,
+    public FeeDetailResponse toFeeDetailResponse(
+            String itemFilter,
+            Integer semesterFilter,
+            BigDecimal minAmount,
+            BigDecimal maxAmount,
+
             FeeErpResponse feeErp
     ) {
-        double sgpa = 0.0;
-        double credits = 0.0;
-        List<SemesterDetailsResponse.SubjectDetail> subjects = new ArrayList<>();
+        List<FeeDetailResponse.FeeItemEntry> entries = new ArrayList<>();
+        double totalSum = 0.0;
 
-        Map<String, String> facultyMap = extractFacultyMap(regList);
+        List<FeeErpResponse.FeeItem> sourceList = (feeErp != null) ? feeErp.allItems() : List.of();
+        String filterClean = (itemFilter != null && !itemFilter.isBlank())
+                ? itemFilter.trim().toLowerCase(Locale.ROOT)
+                : null;
+
+        for (FeeErpResponse.FeeItem feeItem : sourceList) {
+            String feeHead = extractFeeHead(feeItem);
+
+            // Filter by item title
+            if (filterClean != null) {
+                if (!feeHead.toLowerCase(Locale.ROOT).contains(filterClean)) {
+                    continue;
+                }
+            }
+
+            // Filter by semester
+            if (semesterFilter != null) {
+                if (!matchesSemester(feeItem, semesterFilter)) {
+                    continue;
+                }
+            }
+
+            double amt = extractAmount(feeItem);
+
+            // Filter by minAmount
+            if (minAmount != null && amt < minAmount.doubleValue()) {
+                continue;
+            }
+
+            // Filter by maxAmount
+            if (maxAmount != null && amt > maxAmount.doubleValue()) {
+                continue;
+            }
+
+            Integer sem = resolveItemSemester(feeItem, semesterFilter);
+            String semDesc = extractSemesterDesc(feeItem, sem != null ? sem : 0);
+            String session = extractSession(feeItem);
+
+            entries.add(new FeeDetailResponse.FeeItemEntry(
+                    feeHead,
+                    amt,
+                    sem,
+                    semDesc,
+                    session
+            ));
+            totalSum += amt;
+        }
+
+        BigDecimal total = BigDecimal.valueOf(totalSum).setScale(2, RoundingMode.HALF_UP);
+        return new FeeDetailResponse(total, entries.size(), entries);
+    }
+
+    public SubjectMarksResponse toSubjectMarks(String subject, ResultErpResponse resultErp) {
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject code or name must not be empty.");
+        }
+
+        String query = subject.trim().toLowerCase(Locale.ROOT);
 
         if (resultErp != null && resultErp.data() != null && resultErp.data().semesterData() != null) {
             List<ResultErpResponse.SemesterDataItem> semList = resultErp.data().semesterData();
-            if (semester >= 1 && semester <= semList.size()) {
-                ResultErpResponse.SemesterDataItem semItem = semList.get(semester - 1);
-                if (semItem.data() != null) {
-                    if (semItem.data().grandTotal() != null) {
-                        sgpa = CalculationUtils.parseDoubleSafely(semItem.data().grandTotal().sgpa());
-                        credits = CalculationUtils.parseDoubleSafely(semItem.data().grandTotal().totalCredits());
-                    }
 
-                    if (semItem.data().subjects() != null) {
-                        for (ResultErpResponse.SubjectItem s : semItem.data().subjects()) {
-                            String code = s.subjectCode() != null ? s.subjectCode() : "N/A";
-                            String name = s.subname() != null ? s.subname() : "N/A";
-                            String faculty = facultyMap.getOrDefault(code, "Faculty Not Assigned");
-                            subjects.add(new SemesterDetailsResponse.SubjectDetail(code, name, faculty));
-                        }
-                    }
-                }
-            }
-        }
 
-        // Aggregate Fee Info for requested semester
-        SemesterDetailsResponse.FeeSummary feeSummary = computeFeeSummaryForSemester(semester, feeErp);
-
-        return new SemesterDetailsResponse(semester, sgpa, credits, subjects, feeSummary);
-    }
-
-    public SubjectDetailsResponse toSubjectDetails(
-            String subjectCode,
-            ResultErpResponse resultErp,
-            List<RegistrationErpResponse> regList
-    ) {
-        String codeUpper = subjectCode.trim().toUpperCase(Locale.ROOT);
-        Map<String, String> facultyMap = extractFacultyMap(regList);
-
-        if (resultErp != null && resultErp.data() != null && resultErp.data().semesterData() != null) {
-            for (ResultErpResponse.SemesterDataItem semItem : resultErp.data().semesterData()) {
+            // Second pass: name contains or code contains
+            for (int i = 0; i < semList.size(); i++) {
+                ResultErpResponse.SemesterDataItem semItem = semList.get(i);
                 if (semItem.data() != null && semItem.data().subjects() != null) {
                     for (ResultErpResponse.SubjectItem s : semItem.data().subjects()) {
-                        if (s.subjectCode() != null && s.subjectCode().trim().equalsIgnoreCase(codeUpper)) {
-                            String subName = s.subname() != null ? s.subname() : "N/A";
-                            String faculty = facultyMap.getOrDefault(codeUpper, "Faculty Not Assigned");
-                            double midterm = CalculationUtils.parseDoubleSafely(s.midTermMarks());
-                            double endterm = CalculationUtils.parseDoubleSafely(s.endTermMarks());
-                            double total = CalculationUtils.parseDoubleSafely(s.marksObtained());
-                            String grade = s.grade() != null ? s.grade() : "N/A";
-                            double credits = CalculationUtils.parseDoubleSafely(s.credit());
-
-                            return new SubjectDetailsResponse(
-                                    codeUpper,
-                                    subName,
-                                    faculty,
-                                    new SubjectDetailsResponse.MarksBreakdown(midterm, endterm, total),
-                                    grade,
-                                    credits
-                            );
+                        String name = s.subname() != null ? s.subname().trim().toLowerCase(Locale.ROOT) : "";
+                        String code = s.subjectCode() != null ? s.subjectCode().trim().toLowerCase(Locale.ROOT) : "";
+                        if (name.contains(query) || code.contains(query)) {
+                            int sem = i+1;
+                            return buildSubjectMarksResponse(sem, s);
                         }
                     }
                 }
             }
         }
 
-        // If not found in result, check registration
+        throw new ResourceNotFoundException("Subject marks not found for subject: " + subject);
+    }
+
+    public SubjectFacultyResponse toSubjectFaculty(String subject, List<RegistrationErpResponse> regList) {
+        if (subject == null || subject.isBlank()) {
+            throw new IllegalArgumentException("Subject code or name must not be empty.");
+        }
+
+        String query = subject.trim().toLowerCase(Locale.ROOT);
+
         if (regList != null) {
+            // First pass: exact code match
             for (RegistrationErpResponse reg : regList) {
                 if (reg.subjects() != null) {
                     for (RegistrationErpResponse.RegisteredSubject rs : reg.subjects()) {
-                        if (rs.subjectCode() != null && rs.subjectCode().trim().equalsIgnoreCase(codeUpper)) {
-                            return new SubjectDetailsResponse(
-                                    codeUpper,
-                                    rs.subName() != null ? rs.subName() : "N/A",
-                                    rs.empName() != null ? rs.empName() : "Faculty Not Assigned",
-                                    new SubjectDetailsResponse.MarksBreakdown(0.0, 0.0, 0.0),
-                                    "REGISTERED",
-                                    0.0
-                            );
+                        String code = rs.subjectCode() != null ? rs.subjectCode().trim() : "";
+                        if (code.equalsIgnoreCase(query)) {
+                            return buildSubjectFacultyResponse(reg, rs);
+                        }
+                    }
+                }
+            }
+
+            // Second pass: name contains or code contains
+            for (RegistrationErpResponse reg : regList) {
+                if (reg.subjects() != null) {
+                    for (RegistrationErpResponse.RegisteredSubject rs : reg.subjects()) {
+                        String name = rs.subName() != null ? rs.subName().trim().toLowerCase(Locale.ROOT) : "";
+                        String code = rs.subjectCode() != null ? rs.subjectCode().trim().toLowerCase(Locale.ROOT) : "";
+                        if (name.contains(query) || code.contains(query)) {
+                            return buildSubjectFacultyResponse(reg, rs);
                         }
                     }
                 }
             }
         }
 
-        return null;
+        throw new ResourceNotFoundException("Subject faculty not found for subject: " + subject);
     }
 
-    public RegistrationInfoResponse toRegistrationInfo(Integer semester, List<RegistrationErpResponse> regList) {
-        if (regList == null || regList.isEmpty()) {
-            return new RegistrationInfoResponse(semester != null ? semester : 1, 0.0, List.of());
+    private String extractFeeHead(FeeErpResponse.FeeItem item) {
+        if (item.feesSubHeadTitle() != null && !item.feesSubHeadTitle().isBlank()) {
+            return item.feesSubHeadTitle().trim();
         }
-
-        RegistrationErpResponse targetReg = null;
-        if (semester != null) {
-            for (RegistrationErpResponse r : regList) {
-                if (Objects.equals(r.semesterTermNoIdCode(), semester)) {
-                    targetReg = r;
-                    break;
-                }
-            }
-        }
-
-        if (targetReg == null) {
-            // Pick highest/latest semester registration
-            targetReg = regList.stream()
-                    .max(Comparator.comparingInt(r -> r.semesterTermNoIdCode() != null ? r.semesterTermNoIdCode() : 0))
-                    .orElse(regList.get(0));
-        }
-
-        int semNumber = targetReg.semesterTermNoIdCode() != null ? targetReg.semesterTermNoIdCode() : (semester != null ? semester : 1);
-        double credits = CalculationUtils.parseDoubleSafely(targetReg.credits());
-
-        List<RegistrationInfoResponse.RegisteredSubjectInfo> subjects = new ArrayList<>();
-        if (targetReg.subjects() != null) {
-            for (RegistrationErpResponse.RegisteredSubject rs : targetReg.subjects()) {
-                boolean feedbackPending = !Boolean.TRUE.equals(rs.feedbackIsSubmitted());
-                subjects.add(new RegistrationInfoResponse.RegisteredSubjectInfo(
-                        rs.subjectCode() != null ? rs.subjectCode() : "N/A",
-                        rs.subName() != null ? rs.subName() : "N/A",
-                        rs.empName() != null ? rs.empName() : "Not Assigned",
-                        feedbackPending
-                ));
-            }
-        }
-
-        return new RegistrationInfoResponse(semNumber, credits, subjects);
+        return "Fee Item";
     }
 
-    public FeeInfoResponse toFeeInfo(Integer targetSemester, Integer targetYear, FeeErpResponse feeErp) {
-        double academic = 0.0;
-        double hostel = 0.0;
-        double other = 0.0;
-        List<FeeInfoResponse.FeeBreakdownItem> breakdown = new ArrayList<>();
-
-        if (feeErp != null && feeErp.feeData() != null) {
-            for (FeeErpResponse.FeeItem item : feeErp.feeData()) {
-                if (targetSemester != null && item.semesterTypeIdCode() != null && !targetSemester.equals(item.semesterTypeIdCode())) {
-                    continue;
-                }
-                double amt = CalculationUtils.parseDoubleSafely(item.amount() != null ? item.amount() : item.feesPrice());
-                String title = item.feesSubHeadTitle() != null ? item.feesSubHeadTitle() : "Miscellaneous Fee";
-
-                FeeCategorizer.FeeCategory category = FeeCategorizer.categorize(title);
-                switch (category) {
-                    case ACADEMIC -> academic += amt;
-                    case HOSTEL -> hostel += amt;
-                    case OTHER -> other += amt;
-                }
-                breakdown.add(new FeeInfoResponse.FeeBreakdownItem(title, amt));
-            }
+    private double extractAmount(FeeErpResponse.FeeItem item) {
+        double amt = CalculationUtils.parseDoubleSafely(item.amount());
+        if (amt == 0.0) {
+            amt = CalculationUtils.parseDoubleSafely(item.feesPrice());
         }
-
-        double total = academic + hostel + other;
-        int sem = targetSemester != null ? targetSemester : 1;
-        int yr = targetYear != null ? targetYear : 2025;
-
-        return new FeeInfoResponse(sem, yr, academic, hostel, other, total, breakdown);
+        return CalculationUtils.roundToTwoDecimals(amt);
     }
 
-    public AcademicSearchResultResponse searchAcademicRecords(
-            String query,
-            ResultErpResponse resultErp,
-            List<RegistrationErpResponse> regList
-    ) {
-        String q = (query != null ? query.trim().toLowerCase(Locale.ROOT) : "");
-        List<AcademicSearchResultResponse.SearchMatch> matches = new ArrayList<>();
+    private boolean matchesSemester(FeeErpResponse.FeeItem item, int targetSemester) {
+        if (item == null) return false;
 
-        if (resultErp != null && resultErp.data() != null && resultErp.data().semesterData() != null) {
-            List<ResultErpResponse.SemesterDataItem> semList = resultErp.data().semesterData();
-            for (int i = 0; i < semList.size(); i++) {
-                int sem = i + 1;
-                ResultErpResponse.SemesterDataItem item = semList.get(i);
-                if (item.data() != null && item.data().subjects() != null) {
-                    for (ResultErpResponse.SubjectItem s : item.data().subjects()) {
-                        String name = s.subname() != null ? s.subname() : "";
-                        String code = s.subjectCode() != null ? s.subjectCode() : "";
-                        String grade = s.grade() != null ? s.grade() : "";
-                        double marks = CalculationUtils.parseDoubleSafely(s.marksObtained());
-                        double credits = CalculationUtils.parseDoubleSafely(s.credit());
-
-                        boolean match = name.toLowerCase(Locale.ROOT).contains(q)
-                                || code.toLowerCase(Locale.ROOT).contains(q)
-                                || grade.toLowerCase(Locale.ROOT).equalsIgnoreCase(q)
-                                || (q.contains("grade") && q.contains(grade.toLowerCase(Locale.ROOT)))
-                                || (q.contains("lab") && name.toLowerCase(Locale.ROOT).contains("lab"))
-                                || (q.contains("credit") && q.contains(String.valueOf((int) credits)));
-
-                        if (match || q.isBlank()) {
-                            matches.add(new AcademicSearchResultResponse.SearchMatch(
-                                    name, code, grade, marks, credits, sem,
-                                    String.format("Semester %d | Marks: %.1f | Grade: %s", sem, marks, grade)
-                            ));
-                        }
-                    }
+        // Check semester_code_desc (e.g., "Sem 5", "Semester 5", "Sem-5", "5th Sem")
+        if (item.semesterCodeDesc() != null && !item.semesterCodeDesc().isBlank()) {
+            Matcher m = SEM_NUMBER_PATTERN.matcher(item.semesterCodeDesc().trim());
+            if (m.find()) {
+                int extracted = Integer.parseInt(m.group(1));
+                if (extracted == targetSemester) {
+                    return true;
                 }
             }
         }
 
-        return new AcademicSearchResultResponse(matches);
+        return false;
     }
 
-    public StudentDashboardResponse toStudentDashboard(
-            ResultErpResponse resultErp,
-            List<RegistrationErpResponse> regList,
-            FeeErpResponse feeErp
-    ) {
-        AcademicSummaryResponse summary = toAcademicSummary(resultErp);
-
-        int currentSem = 1;
-        if (regList != null && !regList.isEmpty()) {
-            currentSem = regList.stream()
-                    .map(r -> r.semesterTermNoIdCode() != null ? r.semesterTermNoIdCode() : 1)
-                    .max(Integer::compareTo)
-                    .orElse(1);
-        } else if (summary.semesterBreakdown() != null && !summary.semesterBreakdown().isEmpty()) {
-            currentSem = summary.semesterBreakdown().size();
-        }
-
-        int backlogs = 0;
-        if (resultErp != null && resultErp.data() != null && resultErp.data().semesterData() != null) {
-            for (ResultErpResponse.SemesterDataItem sem : resultErp.data().semesterData()) {
-                if (sem.data() != null && sem.data().subjects() != null) {
-                    for (ResultErpResponse.SubjectItem s : sem.data().subjects()) {
-                        if ("F".equalsIgnoreCase(s.grade()) || "FAIL".equalsIgnoreCase(s.grade())) {
-                            backlogs++;
-                        }
-                    }
-                }
+    private Integer resolveItemSemester(FeeErpResponse.FeeItem item, Integer fallback) {
+        if (item.semesterCodeDesc() != null && !item.semesterCodeDesc().isBlank()) {
+            Matcher m = SEM_NUMBER_PATTERN.matcher(item.semesterCodeDesc().trim());
+            if (m.find()) {
+                return Integer.parseInt(m.group(1));
             }
         }
 
-        double totalCredits = summary.semesterBreakdown().stream()
-                .mapToDouble(AcademicSummaryResponse.SemesterBreakdown::credits)
-                .sum();
+        return fallback;
+    }
 
-        double pendingFees = 0.0;
-        if (feeErp != null && feeErp.feeData() != null) {
-            pendingFees = feeErp.feeData().stream()
-                    .mapToDouble(f -> CalculationUtils.parseDoubleSafely(f.amount()))
-                    .sum();
+    private String extractSemesterDesc(FeeErpResponse.FeeItem item, int fallbackSemester) {
+        if (item.semesterCodeDesc() != null && !item.semesterCodeDesc().isBlank()) {
+            return item.semesterCodeDesc().trim();
         }
+        return "Sem " + fallbackSemester;
+    }
 
-        return new StudentDashboardResponse(
-                summary.studentName(),
-                currentSem,
-                summary.cgpa(),
-                totalCredits,
-                backlogs,
-                pendingFees
+    private String extractSession(FeeErpResponse.FeeItem item) {
+        if (item.feesSession() != null) {
+            return item.feesSession().toString().trim();
+        }
+        return "";
+    }
+
+    private SubjectMarksResponse buildSubjectMarksResponse(int semester, ResultErpResponse.SubjectItem s) {
+        String code = s.subjectCode() != null ? s.subjectCode() : "N/A";
+        String name = s.subname() != null ? s.subname() : "N/A";
+        Double midTerm = CalculationUtils.parseDoubleSafely(s.midTermMarks());
+        Double endTerm = CalculationUtils.parseDoubleSafely(s.endTermMarks());
+        Double obtained = CalculationUtils.parseDoubleSafely(s.marksObtained());
+        Double total = CalculationUtils.parseDoubleSafely(s.totalMarks());
+        String grade = s.grade() != null ? s.grade() : "N/A";
+        String gradePoint = s.gradePoint() != null ? s.gradePoint() : "N/A";
+        Double credit = CalculationUtils.parseDoubleSafely(s.credit());
+
+        return new SubjectMarksResponse(
+                code,
+                name,
+                semester,
+                midTerm,
+                endTerm,
+                obtained,
+                total,
+                grade,
+                gradePoint,
+                credit
         );
     }
 
-    private Map<String, String> extractFacultyMap(List<RegistrationErpResponse> regList) {
-        Map<String, String> map = new HashMap<>();
-        if (regList != null) {
-            for (RegistrationErpResponse reg : regList) {
-                if (reg.subjects() != null) {
-                    for (RegistrationErpResponse.RegisteredSubject rs : reg.subjects()) {
-                        if (rs.subjectCode() != null && rs.empName() != null) {
-                            map.put(rs.subjectCode().trim().toUpperCase(Locale.ROOT), rs.empName());
-                        }
-                    }
-                }
+    private SubjectFacultyResponse buildSubjectFacultyResponse(
+            RegistrationErpResponse reg,
+            RegistrationErpResponse.RegisteredSubject rs
+    ) {
+        String code = rs.subjectCode() != null ? rs.subjectCode() : "N/A";
+        String name = rs.subName() != null ? rs.subName() : "N/A";
+        String faculty = rs.empName() != null && !rs.empName().isBlank() ? rs.empName() : "Faculty Not Assigned";
+        Integer sem = null;
+        if (reg.semesterDetails1() != null && !reg.semesterDetails1().isBlank()) {
+            Matcher m = SEM_NUMBER_PATTERN.matcher(reg.semesterDetails1().trim());
+            if (m.find()) {
+                sem = Integer.parseInt(m.group(1));
             }
         }
-        return map;
-    }
-
-    private SemesterDetailsResponse.FeeSummary computeFeeSummaryForSemester(int semester, FeeErpResponse feeErp) {
-        double academic = 0.0;
-        double hostel = 0.0;
-        double other = 0.0;
-
-        if (feeErp != null && feeErp.feeData() != null) {
-            for (FeeErpResponse.FeeItem item : feeErp.feeData()) {
-                if (item.semesterTypeIdCode() != null && item.semesterTypeIdCode() == semester) {
-                    double amt = CalculationUtils.parseDoubleSafely(item.amount() != null ? item.amount() : item.feesPrice());
-                    FeeCategorizer.FeeCategory category = FeeCategorizer.categorize(item.feesSubHeadTitle());
-                    switch (category) {
-                        case ACADEMIC -> academic += amt;
-                        case HOSTEL -> hostel += amt;
-                        case OTHER -> other += amt;
-                    }
-                }
-            }
+        if (sem == null || sem == 0) {
+            sem = reg.regSemesterTypeIdCode();
         }
-        return new SemesterDetailsResponse.FeeSummary(academic, hostel, other);
+        if (sem == null || sem == 0) {
+            sem = reg.semesterTermNoIdCode();
+        }
+        String dept = reg.depName();
+
+        return new SubjectFacultyResponse(code, name, faculty, sem, dept);
     }
 }

@@ -1,12 +1,11 @@
 package com.manit.erp.mcp.services;
 
-import com.manit.erp.mcp.clients.FeeApiClient;
 import com.manit.erp.mcp.clients.RegistrationApiClient;
 import com.manit.erp.mcp.clients.ResultApiClient;
+import com.manit.erp.mcp.dto.erp.RegistrationErpResponse;
 import com.manit.erp.mcp.dto.erp.ResultErpResponse;
-import com.manit.erp.mcp.dto.tool.AcademicSummaryResponse;
-import com.manit.erp.mcp.dto.tool.SemesterDetailsResponse;
-import com.manit.erp.mcp.dto.tool.SubjectDetailsResponse;
+import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
+import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
 import com.manit.erp.mcp.exception.ResourceNotFoundException;
 import com.manit.erp.mcp.mapper.ErpDataMapper;
 import com.manit.erp.mcp.services.impl.AcademicServiceImpl;
@@ -33,49 +32,73 @@ class AcademicServiceTest {
     @Mock
     private RegistrationApiClient registrationApiClient;
 
-    @Mock
-    private FeeApiClient feeApiClient;
-
     private AcademicService academicService;
 
     @BeforeEach
     void setUp() {
         ErpDataMapper mapper = new ErpDataMapper();
-        academicService = new AcademicServiceImpl(resultApiClient, registrationApiClient, feeApiClient, mapper);
+        academicService = new AcademicServiceImpl(resultApiClient, registrationApiClient, mapper);
+    }
+
+    private ResultErpResponse createSampleResultResponse() {
+        ResultErpResponse.SubjectItem s1 = new ResultErpResponse.SubjectItem(
+                "Data Mining", "MDS323", 100.0, 78.0, 39.0, 39.0, 40.0, 40.0,
+                "A", "8.0", "3.0", "2024-2025", 5, 101, "Dec", "2024"
+        );
+        ResultErpResponse.SemesterInnerData inner = new ResultErpResponse.SemesterInnerData(List.of(s1), null);
+        ResultErpResponse.SemesterDataItem semItem = new ResultErpResponse.SemesterDataItem("SUCCESS", "OK", inner);
+        ResultErpResponse.SemesterDataItem emptySem = new ResultErpResponse.SemesterDataItem("SUCCESS", "OK", new ResultErpResponse.SemesterInnerData(List.of(), null));
+        return new ResultErpResponse("SUCCESS", new ResultErpResponse.ResultData(List.of(), List.of(emptySem, emptySem, emptySem, emptySem, semItem)));
+    }
+
+    private List<RegistrationErpResponse> createSampleRegistrationResponse() {
+        RegistrationErpResponse.RegisteredSubject rs1 = new RegistrationErpResponse.RegisteredSubject(
+                101, 1, "MDS323", "Data Mining", "MDS323", "DESC", "Dr. Ali Ahmed", 55, 1, true
+        );
+        RegistrationErpResponse reg = new RegistrationErpResponse(
+                "2024-2025", 5, "ACTIVE", "2024-08-01", 5, "PAID", "50000", "21.0",
+                "Pankaj Soni", "M", "12345", "Computer Science", List.of(rs1)
+        );
+        return List.of(reg);
     }
 
     @Test
-    void testGetAcademicSummary_Success() {
-        ResultErpResponse.BasicDetail basic = new ResultErpResponse.BasicDetail(
-                "Pankaj Soni", "CSE", "Computer Science", "CSE", "123", "REG123", "M", "email@manit.ac.in", 5, "Sem 5", 4705, "B.Tech"
-        );
-        ResultErpResponse.GrandTotal gt = new ResultErpResponse.GrandTotal(
-                500.0, 420.0, 84.0, "8.4", 20.0, 168.0, 200.0, "FIRST", "REGULAR", "PASS", "2024-2025"
-        );
-        ResultErpResponse.SemesterDataItem semItem = new ResultErpResponse.SemesterDataItem("SUCCESS", "OK", new ResultErpResponse.SemesterInnerData(List.of(), gt));
-        ResultErpResponse mockResponse = new ResultErpResponse("SUCCESS", new ResultErpResponse.ResultData(List.of(basic), List.of(semItem)));
+    void testGetSubjectMarks_SuccessByCode() {
+        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
 
-        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(mockResponse));
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("MDS323");
 
-        Mono<AcademicSummaryResponse> resultMono = academicService.getAcademicSummary();
-
-        StepVerifier.create(resultMono)
-                .assertNext(summary -> {
-                    assertEquals("Pankaj Soni", summary.studentName());
-                    assertEquals("Computer Science", summary.program());
-                    assertEquals(8.4, summary.cgpa());
-                    assertEquals(1, summary.semesterBreakdown().size());
-                    assertEquals(8.4, summary.semesterBreakdown().get(0).sgpa());
+        StepVerifier.create(mono)
+                .assertNext(res -> {
+                    assertEquals("MDS323", res.subjectCode());
+                    assertEquals("Data Mining", res.subjectName());
+                    assertEquals(78.0, res.marksObtained());
+                    assertEquals(39.0, res.midTermMarks());
+                    assertEquals(39.0, res.endTermMarks());
+                    assertEquals("A", res.grade());
+                    assertEquals(5, res.semester());
                 })
                 .verifyComplete();
     }
 
     @Test
-    void testGetSubjectDetails_NotFound() {
-        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(new ResultErpResponse("SUCCESS", new ResultErpResponse.ResultData(List.of(), List.of()))));
-        when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(List.of()));
+    void testGetSubjectMarks_SuccessByName() {
+        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
 
-        Mono<SubjectDetailsResponse> mono = academicService.getSubjectDetails("INVALID999");
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("data mining");
+
+        StepVerifier.create(mono)
+                .assertNext(res -> {
+                    assertEquals("MDS323", res.subjectCode());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void testGetSubjectMarks_NotFound() {
+        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
+
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("NON_EXISTENT");
 
         StepVerifier.create(mono)
                 .expectError(ResourceNotFoundException.class)
@@ -83,11 +106,62 @@ class AcademicServiceTest {
     }
 
     @Test
-    void testGetSemesterDetails_InvalidSemester() {
-        Mono<SemesterDetailsResponse> mono = academicService.getSemesterDetails(0);
+    void testGetSubjectMarks_EmptyInput() {
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("");
 
         StepVerifier.create(mono)
                 .expectError(IllegalArgumentException.class)
+                .verify();
+    }
+
+    @Test
+    void testGetSubjectFaculty_SuccessByCode() {
+        when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
+
+        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("MDS323");
+
+        StepVerifier.create(mono)
+                .assertNext(res -> {
+                    assertEquals("MDS323", res.subjectCode());
+                    assertEquals("Data Mining", res.subjectName());
+                    assertEquals("Dr. Ali Ahmed", res.facultyName());
+                    assertEquals(5, res.semester());
+                    assertEquals("Computer Science", res.department());
+                })
+                .verifyComplete();
+    }
+
+            @Test
+            void testGetSubjectFaculty_UsesRegistrationSemester() {
+            RegistrationErpResponse.RegisteredSubject subject = new RegistrationErpResponse.RegisteredSubject(
+                321, 1, "MDS321", "Optimization Technique", "MDS321", "DESC",
+                "Dr. Madhvi Shakya", 55, 1, true
+            );
+            RegistrationErpResponse registration = new RegistrationErpResponse(
+                "2024-2025", 9, "ACTIVE", "2024-08-01", 1, "PAID", "50000", "21.0",
+                "Student", "M", "12345", "Department of Mathematics, Bioinformatics and Computer Applications",
+                List.of(subject)
+            );
+            when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(List.of(registration)));
+
+            StepVerifier.create(academicService.getSubjectFaculty("MDS321"))
+                .assertNext(res -> {
+                    assertEquals("Optimization Technique", res.subjectName());
+                    assertEquals("Dr. Madhvi Shakya", res.facultyName());
+                    assertEquals(9, res.semester());
+                    assertEquals("Department of Mathematics, Bioinformatics and Computer Applications", res.department());
+                })
+                .verifyComplete();
+            }
+
+    @Test
+    void testGetSubjectFaculty_NotFound() {
+        when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
+
+        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("INVALID_CODE");
+
+        StepVerifier.create(mono)
+                .expectError(ResourceNotFoundException.class)
                 .verify();
     }
 }

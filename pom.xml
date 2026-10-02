@@ -70,6 +70,20 @@
             <artifactId>byte-buddy-agent</artifactId>
             <version>${byte-buddy.version}</version>
         </dependency>
+        <!-- Flying Saucer OpenPDF for HTML to PDF generation -->
+        <dependency>
+            <groupId>org.xhtmlrenderer</groupId>
+            <artifactId>flying-saucer-pdf-openpdf</artifactId>
+            <version>9.1.22</version>
+        </dependency>
+
+        <!-- jsoup for HTML to well-formed XHTML normalization -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.18.1</version>
+        </dependency>
+
         <!-- Lombok for dependency injection -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -109,6 +123,12 @@
                 <configuration>
                     <source>21</source>
                     <target>21</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>

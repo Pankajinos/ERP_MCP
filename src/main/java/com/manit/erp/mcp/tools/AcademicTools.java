@@ -1,128 +1,122 @@
 package com.manit.erp.mcp.tools;
 
-import com.manit.erp.mcp.dto.tool.AcademicSearchResultResponse;
-import com.manit.erp.mcp.dto.tool.AcademicSummaryResponse;
-import com.manit.erp.mcp.dto.tool.FeeInfoResponse;
-import com.manit.erp.mcp.dto.tool.RegistrationInfoResponse;
-import com.manit.erp.mcp.dto.tool.SemesterDetailsResponse;
-import com.manit.erp.mcp.dto.tool.StudentDashboardResponse;
-import com.manit.erp.mcp.dto.tool.SubjectDetailsResponse;
+import com.manit.erp.mcp.dto.tool.FeeDetailResponse;
+import com.manit.erp.mcp.dto.tool.FeePerSemesterResponse;
+import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
+import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
 import com.manit.erp.mcp.services.AcademicService;
 import com.manit.erp.mcp.services.FeeService;
-import com.manit.erp.mcp.services.RegistrationService;
-import com.manit.erp.mcp.services.StudentDashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
-@Component
+import java.math.BigDecimal;
+
 @RequiredArgsConstructor
+@Component
 public class AcademicTools {
 
-    private final AcademicService academicService;
-    private final RegistrationService registrationService;
     private final FeeService feeService;
-    private final StudentDashboardService studentDashboardService;
+    private final AcademicService academicService;
 
     @Tool(
-            name = "getAcademicSummary",
+            name = "getFeeDetailsPerSemester",
             description = """
-            Returns an academic overview of the authenticated student,
-            including full name, program, overall CGPA, and semester-wise
-            SGPA and credits earned.
+            Returns complete fee details and line-item breakdown for a specific semester,
+            including semester number, total fee amount, and individual fee heads.
             """
     )
-    public AcademicSummaryResponse getAcademicSummary() {
-        return academicService.getAcademicSummary().block();
-    }
-
-    @Tool(
-            name = "getSemesterDetails",
-            description = """
-            Returns complete academic information for a specific semester,
-            including SGPA, credits earned, subjects, assigned faculty,
-            and semester fee information.
-            """
-    )
-    public SemesterDetailsResponse getSemesterDetails(
-            @ToolParam(description = "Semester number, for example 1, 2, 5, or 8")
+    public FeePerSemesterResponse getFeeDetailsPerSemester(
+            @ToolParam(description = "Semester number, for example 1, 2, 5")
             int semester) {
-
-        return academicService.getSemesterDetails(semester).block();
+        return feeService.getFeeDetailsPerSemester(semester).block();
     }
 
     @Tool(
-            name = "getSubjectDetails",
+            name = "getFeeDetailPerItem",
             description = """
-            Returns detailed information about a specific subject,
-            including course title, faculty, marks, grade, and credits.
+            Retrieves student fee details using optional filters.
+
+            All parameters are optional. Multiple filters can be combined.
+            If no filters are provided, returns all available fee details.
+
+            item:
+            Optional fee item name to filter by. The value should match one of the
+            available fee item names, such as:
+            Tuition Fee, Caution Money, OT-Academic Fee, OT-Alumini Fee,
+            OT-Student Training & Placement, OT-Convocation Fee,
+            SF-Poor Students Fund, SF-Student Medical Fund,
+            SF-Institute Development Fund, SF-Student Activity Fee,
+            SF-Library Fee, SF-Registration & Examination Fee,
+            SF-Central Computing Facility & Internet Fee,
+            SF-Membership Fee for NOSP/NASA,
+            Registration & Medical Examination Fee(OT), Bus Fees,
+            Caution Money(Hostel), Hostel Maintenance Charges, Hostel Rent.
+
+            If the user's wording differs from the exact item name, map it to the
+            closest matching fee item.
+
+            semester:
+            Optional semester number. Must be an integer between 0 and 10.
+            For example, semester=5 refers to Semester 5.
+
+            minAmount:
+            Optional minimum fee amount. Returns fee items whose amount is greater
+            than or equal to this value.
+
+            maxAmount:
+            Optional maximum fee amount. Returns fee items whose amount is less than
+            or equal to this value.
+
+            Examples:
+            - "Show my hostel rent" -> item="Hostel Rent"
+            - "Show library fee for semester 5" -> item="SF-Library Fee", semester=5
+            - "Show fees above 5000" -> minAmount=5000
+            - "Show fees below 2000" -> maxAmount=2000
+            - "Show fees between 1000 and 5000" -> minAmount=1000, maxAmount=5000
+            - "Show all fees for semester 5" -> semester=5
             """
     )
-    public SubjectDetailsResponse getSubjectDetails(
-            @ToolParam(description = "Subject course code, for example MDS316")
-            String subjectCode) {
+    public FeeDetailResponse getFeeDetailPerItem(
+            @ToolParam(description = "Optional fee item name or keyword (e.g. Tuition Fee, Hostel Rent, SF-Library Fee)")
+            String item,
 
-        return academicService.getSubjectDetails(subjectCode).block();
-    }
-
-    @Tool(
-            name = "getRegistrationInfo",
-            description = """
-            Returns course registration information for a semester.
-            If no semester is provided, returns information for the
-            current active semester.
-            """
-    )
-    public RegistrationInfoResponse getRegistrationInfo(
-            @ToolParam(description = "Optional semester number. Omit to use the current active semester.")
-            Integer semester) {
-
-        return registrationService.getRegistrationInfo(semester).block();
-    }
-
-    @Tool(
-            name = "getFeeInfo",
-            description = """
-            Returns fee information for a semester, including academic,
-            hostel, and other fees, along with totals and individual
-            fee items.
-            """
-    )
-    public FeeInfoResponse getFeeInfo(
-            @ToolParam(description = "Semester number")
+            @ToolParam(description = "Optional semester number between 0 and 10")
             Integer semester,
 
-            @ToolParam(description = "Optional academic year, for example 2025")
-            Integer year) {
+            @ToolParam(description = "Optional minimum fee amount threshold")
+            BigDecimal minAmount,
 
-        return feeService.getFeeInfo(semester, year).block();
+            @ToolParam(description = "Optional maximum fee amount threshold")
+            BigDecimal maxAmount
+    ) {
+        return feeService.getFeeDetailPerItem(item, semester, minAmount, maxAmount).block();
     }
 
     @Tool(
-            name = "searchAcademicRecords",
+            name = "getSubjectMarksPerSubject",
             description = """
-            Searches the authenticated student's academic records using
-            natural-language criteria such as subject name, grade,
-            marks, labs, or credit count.
+            Returns detailed examination marks, score breakdown (midterm, endterm, total),
+            and grade for a specific subject by subject code or subject name.
             """
     )
-    public AcademicSearchResultResponse searchAcademicRecords(
-            @ToolParam(description = "Natural-language search query")
-            String query) {
-
-        return academicService.searchAcademicRecords(query).block();
+    public SubjectMarksResponse getSubjectMarksPerSubject(
+            @ToolParam(description = "Subject code (e.g., MDS316, MDS323) or subject name (e.g., Data Mining)")
+            String subject) {
+        return academicService.getSubjectMarks(subject).block();
     }
 
     @Tool(
-            name = "getStudentDashboard",
+            name = "getSubjectFacultyPerSubject",
             description = """
-            Returns a high-level dashboard for the authenticated student,
-            including current semester, CGPA, earned credits, backlog count,
-            and pending fees.
+            Returns assigned faculty instructor and course details for a specific subject
+            by subject code or subject name.
             """
     )
-    public StudentDashboardResponse getStudentDashboard() {
-        return studentDashboardService.getStudentDashboard().block();
+    public SubjectFacultyResponse getSubjectFacultyPerSubject(
+            @ToolParam(description = "Subject code (e.g., MDS316, MDS323) or subject name (e.g., Data Mining)")
+            String subject) {
+        return academicService.getSubjectFaculty(subject).block();
     }
 }

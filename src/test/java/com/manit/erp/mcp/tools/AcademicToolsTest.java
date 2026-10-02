@@ -1,20 +1,19 @@
 package com.manit.erp.mcp.tools;
 
-import com.manit.erp.mcp.dto.tool.AcademicSummaryResponse;
-import com.manit.erp.mcp.dto.tool.SemesterDetailsResponse;
-import com.manit.erp.mcp.dto.tool.StudentDashboardResponse;
+import com.manit.erp.mcp.dto.tool.FeeDetailResponse;
+import com.manit.erp.mcp.dto.tool.FeePerSemesterResponse;
+import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
+import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
 import com.manit.erp.mcp.services.AcademicService;
 import com.manit.erp.mcp.services.FeeService;
-import com.manit.erp.mcp.services.RegistrationService;
-import com.manit.erp.mcp.services.StudentDashboardService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,54 +23,73 @@ import static org.mockito.Mockito.when;
 class AcademicToolsTest {
 
     @Mock
-    private AcademicService academicService;
-
-    @Mock
-    private RegistrationService registrationService;
-
-    @Mock
     private FeeService feeService;
 
     @Mock
-    private StudentDashboardService studentDashboardService;
+    private AcademicService academicService;
 
     @InjectMocks
     private AcademicTools academicTools;
 
     @Test
-    void testGetAcademicSummary_ToolExecution() {
-        AcademicSummaryResponse mockResponse = new AcademicSummaryResponse("Pankaj Soni", "M.Tech CSE", 8.73, List.of());
-        when(academicService.getAcademicSummary()).thenReturn(Mono.just(mockResponse));
+    void testGetFeeDetailsPerSemester_ToolExecution() {
+        FeePerSemesterResponse mockResponse = new FeePerSemesterResponse(
+                5, 50000.0, 1,
+                List.of(new FeePerSemesterResponse.FeeItemDetail("Tuition Fee", 50000.0, "2024-2025", "Sem 5"))
+        );
+        when(feeService.getFeeDetailsPerSemester(5)).thenReturn(Mono.just(mockResponse));
 
-        AcademicSummaryResponse result = academicTools.getAcademicSummary();
-
-        assertNotNull(result);
-        assertEquals("Pankaj Soni", result.studentName());
-        assertEquals(8.73, result.cgpa());
-    }
-
-    @Test
-    void testGetSemesterDetails_ToolExecution() {
-        SemesterDetailsResponse mockResponse = new SemesterDetailsResponse(5, 8.91, 21.0, List.of(), new SemesterDetailsResponse.FeeSummary(42000.0, 7500.0, 2200.0));
-        when(academicService.getSemesterDetails(5)).thenReturn(Mono.just(mockResponse));
-
-        SemesterDetailsResponse result = academicTools.getSemesterDetails(5);
+        FeePerSemesterResponse result = academicTools.getFeeDetailsPerSemester(5);
 
         assertNotNull(result);
         assertEquals(5, result.semester());
-        assertEquals(8.91, result.sgpa());
+        assertEquals(50000.0, result.totalAmount());
+        assertEquals(1, result.itemCount());
     }
 
     @Test
-    void testGetStudentDashboard_ToolExecution() {
-        StudentDashboardResponse mockDashboard = new StudentDashboardResponse("Pankaj Soni", 5, 8.73, 98.0, 0, 7500.0);
-        when(studentDashboardService.getStudentDashboard()).thenReturn(Mono.just(mockDashboard));
+    void testGetFeeDetailPerItem_ToolExecution() {
+        FeeDetailResponse mockResponse = new FeeDetailResponse(
+                BigDecimal.valueOf(7500.0), 1,
+                List.of(new FeeDetailResponse.FeeItemEntry("Hostel Rent", 7500.0, 5, "Sem 5", "2024-2025"))
+        );
+        when(feeService.getFeeDetailPerItem("Hostel Rent", 5, BigDecimal.valueOf(5000), BigDecimal.valueOf(10000)))
+                .thenReturn(Mono.just(mockResponse));
 
-        StudentDashboardResponse result = academicTools.getStudentDashboard();
+        FeeDetailResponse result = academicTools.getFeeDetailPerItem(
+                "Hostel Rent", 5, BigDecimal.valueOf(5000), BigDecimal.valueOf(10000)
+        );
 
         assertNotNull(result);
-        assertEquals("Pankaj Soni", result.student());
-        assertEquals(5, result.currentSemester());
-        assertEquals(8.73, result.cgpa());
+        assertEquals(1, result.matchCount());
+        assertEquals(BigDecimal.valueOf(7500.0), result.totalAmount());
+    }
+
+    @Test
+    void testGetSubjectMarksPerSubject_ToolExecution() {
+        SubjectMarksResponse mockResponse = new SubjectMarksResponse(
+                "MDS323", "Data Mining", 5, 39.0, 39.0, 78.0, 100.0, "A", "8.0", 3.0
+        );
+        when(academicService.getSubjectMarks("MDS323")).thenReturn(Mono.just(mockResponse));
+
+        SubjectMarksResponse result = academicTools.getSubjectMarksPerSubject("MDS323");
+
+        assertNotNull(result);
+        assertEquals("MDS323", result.subjectCode());
+        assertEquals(78.0, result.marksObtained());
+    }
+
+    @Test
+    void testGetSubjectFacultyPerSubject_ToolExecution() {
+        SubjectFacultyResponse mockResponse = new SubjectFacultyResponse(
+                "MDS323", "Data Mining", "Dr. Ali Ahmed", 5, "Computer Science"
+        );
+        when(academicService.getSubjectFaculty("MDS323")).thenReturn(Mono.just(mockResponse));
+
+        SubjectFacultyResponse result = academicTools.getSubjectFacultyPerSubject("MDS323");
+
+        assertNotNull(result);
+        assertEquals("MDS323", result.subjectCode());
+        assertEquals("Dr. Ali Ahmed", result.facultyName());
     }
 }
