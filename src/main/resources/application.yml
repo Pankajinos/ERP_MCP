@@ -1,15 +1,22 @@
+#For running server on HTTP SSE
+server:
+  port: 8080
+
 spring:
   application:
     name: student-erp-mcp-server
   main:
     banner-mode: "off"
-    web-application-type: none
+#    web-application-type: none        #enable when you run server on stdio (means our server is a child process of some other program)
+    web-application-type: servlet
   ai:
     mcp:
       server:
         name: student-erp-mcp-server
         version: 1.0.0
-        stdio: true
+#        stdio: true
+        sse: true     # Enable SSE transport
+        sse-message-endpoint: /mcp/message
 
 erp:
   api:

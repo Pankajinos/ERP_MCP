@@ -1,181 +1,126 @@
-# MANIT Student ERP MCP Server ??
+ï»¿
+# MANIT Student ERP MCP Server
 
-A production-ready **Model Context Protocol (MCP) Server** built with **Java 21**, **Spring Boot 3.3+**, and **Spring AI MCP Server**. This server connects to university ERP endpoints (`erpapi.manit.ac.in`) and exposes granular student academic, fee, and faculty details as focused AI Tools for **Claude Desktop** and **GitHub Copilot Chat**.
+A production-ready **Model Context Protocol (MCP) Server** built with **Java 21**, **Spring Boot 3.3+**, and **Spring AI MCP Server**. This server connects to university ERP endpoints (`erpapi.manit.ac.in`) and exposes granular student academic, fee, and faculty details as focused AI Tools for **Claude**, **Gemini**, **ChatGPT**, and **GitHub Copilot Chat**.
 
 ---
 
-## ??? Architecture Overview
+## Architecture Overview
 
 The MCP server follows Clean Architecture principles, ensuring strict separation of concerns, immutability via Java 21 Records, and focused data delivery to LLMs.
 
-```
-                      [ Claude Desktop / GitHub Copilot Chat ]
-                                         ¦
-                                   (STDIO / SSE)
-                                         ¦
-                                         ?
-                            +-------------------------+
-                            ¦      AcademicTools      ¦  <-- MCP Tools Layer (@Tool)
-                            +-------------------------+
-                                         ¦
-                        +---------------------------------+
-                        ?                                 ?
-              +------------------+               +------------------+
-              ¦ AcademicService  ¦               ¦    FeeService    ¦  <-- Service Layer
-              +------------------+               +------------------+
-                       ¦                                  ¦
-                       +----------------------------------+
-                                        ¦
-                                        ?
-                             +---------------------+
-                             ¦    ErpDataMapper    ¦  <-- DTO Transformation
-                             +---------------------+
-                                        ¦
-             +--------------------------+--------------------------+
-             ?                          ?                          ?
-   +-------------------+      +-------------------+      +-------------------+
-   ¦  ResultApiClient  ¦      ¦RegistrationClient ¦      ¦   FeeApiClient    ¦ <-- WebClient
-   +-------------------+      +-------------------+      +-------------------+
-             ¦                          ¦                          ¦
-             +--------------------------+--------------------------+
-                                        ¦ (HTTP GET with JSON Payload)
-                                        ?
-                          [ erpapi.manit.ac.in REST APIs ]
+```mermaid
+flowchart TD
+    Client["AI Client (Claude / Gemini / ChatGPT)"] -->|STDIO / SSE| Tools["AcademicTools (@Tool Layer)"]
+    Tools --> Services["Service Layer (AcademicService / FeeService)"]
+    Services --> Mapper["ErpDataMapper"]
+    Services --> Clients["API Clients (ResultApiClient / RegistrationApiClient / FeeApiClient)"]
+    Clients -->|HTTP GET| ERP["MANIT ERP REST APIs (erpapi.manit.ac.in)"]
 ```
 
 ---
 
-## ?? Detailed Tool Summary & Technical Specifications
+## MCP Tools Overview
 
-The server exposes 4 granular, high-value MCP tools:
+Below is the summary of all 4 exposed MCP tools and their technical specifications:
 
----
-
-### 1?? `getFeeDetailsPerSemester(int semester)`
-
-#### Description & Purpose
-Returns complete fee details and line-item breakdown for a specific semester, including semester number, total fee amount, and individual fee heads.
-
-#### Input Parameters
-| Parameter Name | Data Type | Mandatory / Optional | Description |
+| Tool Name | Description | Input Parameters | Return Response |
 |---|---|---|---|
-| `semester` | `int` | **Mandatory** | Semester term number (e.g., `1`, `2`, `5`, `8`). |
+| `getFeeDetailsPerSemester` | Returns complete fee details and line-item breakdown for a specific semester. | `semester` (`int`, Mandatory): Semester term number (e.g. `5`) | `FeePerSemesterResponse` (semester, totalAmount, itemCount, items) |
+| `getFeeDetailPerItem` | Retrieves student fee details filtered by item title, semester, or amount range. | `item` (`String`, Optional)<br>`semester` (`Integer`, Optional)<br>`minAmount` (`BigDecimal`, Optional)<br>`maxAmount` (`BigDecimal`, Optional) | `FeeDetailResponse` (totalAmount, matchCount, feeItems) |
+| `getSubjectMarksPerSubject` | Returns examination marks, grade, grade points, and credits for a specific subject code or name. | `subject` (`String`, Mandatory): Subject code (e.g. `MDS323`) or title (e.g. `Data Mining`) | `SubjectMarksResponse` (subjectCode, subjectName, semester, midTermMarks, endTermMarks, marksObtained, grade, credit) |
+| `getSubjectFacultyPerSubject` | Returns assigned faculty instructor name, semester, and department for a subject. | `subject` (`String`, Mandatory): Subject code or title | `SubjectFacultyResponse` (subjectCode, subjectName, facultyName, semester, department) |
 
-#### Output Example
+---
+
+## AI Client Integration Guide
+
+> [!IMPORTANT]
+> **Authentication Token Configuration:**
+> You must provide the environment variable `ERP_AUTH_TOKEN` containing your MANIT ERP Bearer token **without** the word `Bearer` prefix (obtained from the MANIT ERP portal session/network tab).
+
+### 1. Integration with Claude (Claude Desktop / Claude Code)
+
+To integrate this MCP server with **Claude Desktop**, add the server configuration to your `claude_desktop_config.json` file:
+
+- **Windows Path:** `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS Path:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
 ```json
 {
-  "semester": 5,
-  "totalAmount": 50000.0,
-  "itemCount": 3,
-  "items": [
-    {
-      "feeHead": "Tuition Fee",
-      "amount": 42000.0,
-      "session": "2024-2025",
-      "semesterDesc": "Sem 5"
-    },
-    {
-      "feeHead": "Hostel Rent",
-      "amount": 7500.0,
-      "session": "2024-2025",
-      "semesterDesc": "Sem 5"
-    },
-    {
-      "feeHead": "SF-Library Fee",
-      "amount": 500.0,
-      "session": "2024-2025",
-      "semesterDesc": "Sem 5"
+  "mcpServers": {
+    "manit-erp": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "C:/path/to/student-erp-mcp-server-1.0.0-SNAPSHOT.jar"
+      ],
+      "env": {
+        "ERP_AUTH_TOKEN": "your_bearer_token_here_without_the_word_Bearer"
+      }
     }
-  ]
+  }
 }
 ```
 
 ---
 
-### 2?? `getFeeDetailPerItem(String item, Integer semester, BigDecimal minAmount, BigDecimal maxAmount)`
+### 2. Integration with Gemini (Gemini CLI / Goose / Desktop MCP Clients)
 
-#### Description & Purpose
-Retrieves student fee details using optional filters. All parameters are optional and multiple filters can be combined. If no filters are provided, returns all available fee details.
+For Gemini-based AI tools supporting MCP (such as Gemini CLI or Goose):
 
-#### Input Parameters
-| Parameter Name | Data Type | Mandatory / Optional | Description |
-|---|---|---|---|
-| `item` | `String` | **Optional** | Fee item name or keyword (e.g. `Tuition Fee`, `Hostel Rent`, `SF-Library Fee`, `Bus Fees`, etc.). |
-| `semester` | `Integer` | **Optional** | Semester number between `0` and `10`. |
-| `minAmount` | `BigDecimal` | **Optional** | Minimum fee amount threshold (returns items with amount >= `minAmount`). |
-| `maxAmount` | `BigDecimal` | **Optional** | Maximum fee amount threshold (returns items with amount <= `maxAmount`). |
+Add the server to your MCP configuration file (e.g., `~/.config/gemini/mcp.json` or `config.yaml`):
 
-#### Output Example
 ```json
 {
-  "totalAmount": 7500.00,
-  "matchCount": 1,
-  "feeItems": [
-    {
-      "feeHead": "Hostel Rent",
-      "amount": 7500.0,
-      "semester": 5,
-      "semesterDesc": "Sem 5",
-      "session": "2024-2025"
+  "mcpServers": {
+    "manit-erp": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "C:/path/to/student-erp-mcp-server-1.0.0-SNAPSHOT.jar"
+      ],
+      "env": {
+        "ERP_AUTH_TOKEN": "your_bearer_token_here_without_the_word_Bearer"
+      }
     }
-  ]
+  }
 }
 ```
 
 ---
 
-### 3?? `getSubjectMarksPerSubject(String subject)`
+### 3. Integration with ChatGPT (ChatGPT Desktop / Open WebUI / Custom GPTs)
 
-#### Description & Purpose
-Returns detailed examination marks, score breakdown (midterm, endterm, total obtained, max marks), letter grade, grade points, and credits for a specific subject by subject code or subject name.
+For ChatGPT clients supporting STDIO or SSE MCP bridges (such as Open WebUI or MCP-proxy bridges):
 
-#### Input Parameters
-| Parameter Name | Data Type | Mandatory / Optional | Description |
-|---|---|---|---|
-| `subject` | `String` | **Mandatory** | Subject course code (e.g. `MDS316`, `MDS323`) or course title (e.g. `Data Mining`). |
+1. **STDIO Bridge Configuration:**
+   ```json
+   {
+     "mcpServers": {
+       "manit-erp": {
+         "command": "java",
+         "args": [
+           "-jar",
+           "C:/path/to/student-erp-mcp-server-1.0.0-SNAPSHOT.jar"
+         ],
+         "env": {
+           "ERP_AUTH_TOKEN": "your_bearer_token_here_without_the_word_Bearer"
+         }
+       }
+     }
+   }
+   ```
 
-#### Output Example
-```json
-{
-  "subjectCode": "MDS323",
-  "subjectName": "Data Mining",
-  "semester": 5,
-  "midTermMarks": 39.0,
-  "endTermMarks": 39.0,
-  "marksObtained": 78.0,
-  "totalMarks": 100.0,
-  "grade": "A",
-  "gradePoint": "8.0",
-  "credit": 3.0
-}
-```
-
----
-
-### 4?? `getSubjectFacultyPerSubject(String subject)`
-
-#### Description & Purpose
-Returns assigned faculty instructor and course details for a specific subject by subject code or subject name.
-
-#### Input Parameters
-| Parameter Name | Data Type | Mandatory / Optional | Description |
-|---|---|---|---|
-| `subject` | `String` | **Mandatory** | Subject course code (e.g. `MDS316`, `MDS323`) or course title (e.g. `Data Mining`). |
-
-#### Output Example
-```json
-{
-  "subjectCode": "MDS323",
-  "subjectName": "Data Mining",
-  "facultyName": "Dr. Ali Ahmed",
-  "semester": 5,
-  "department": "Computer Science & Engineering"
-}
-```
+2. **HTTP/SSE Mode (if using web bridge):**
+   Set `ERP_AUTH_TOKEN` in your environment, run the Spring Boot application on port 8080, and point your MCP SSE client to:
+   ```
+   http://localhost:8080/mcp/sse
+   ```
 
 ---
 
-## ?? How to Build & Run Locally
+## How to Build & Run Locally
 
 ### Prerequisites
 - **Java 21+** (`java -version`)
@@ -188,12 +133,12 @@ mvn clean package -DskipTests=false
 
 ### Run Executable JAR
 ```bash
-java -jar target/student-erp-mcp-server-1.0.0-SNAPSHOT.jar
+java -DERP_AUTH_TOKEN="your_bearer_token_here_without_the_word_Bearer" -jar target/student-erp-mcp-server-1.0.0-SNAPSHOT.jar
 ```
 
 ---
 
-## ?? Sample Prompts for LLM Testing
+## Sample Prompts for LLM Testing
 
 1. *"Show my fee details for semester 5."*
 2. *"How much is my Hostel Rent?"*
