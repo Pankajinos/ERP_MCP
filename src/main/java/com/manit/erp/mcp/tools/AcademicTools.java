@@ -1,5 +1,6 @@
 package com.manit.erp.mcp.tools;
 
+import com.manit.erp.mcp.config.McpBearerTokenSupport;
 import com.manit.erp.mcp.dto.tool.FeeDetailResponse;
 import com.manit.erp.mcp.dto.tool.FeePerSemesterResponse;
 import com.manit.erp.mcp.dto.tool.SubjectFacultyResponse;
@@ -7,8 +8,10 @@ import com.manit.erp.mcp.dto.tool.SubjectMarksResponse;
 import com.manit.erp.mcp.services.AcademicService;
 import com.manit.erp.mcp.services.FeeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -29,8 +32,10 @@ public class AcademicTools {
     )
     public FeePerSemesterResponse getFeeDetailsPerSemester(
             @ToolParam(description = "Semester number, for example 1, 2, 5")
-            int semester) {
-        return feeService.getFeeDetailsPerSemester(semester).block();
+            int semester,
+            @NonNull ToolContext toolContext) {
+        return feeService.getFeeDetailsPerSemester(
+                semester, McpBearerTokenSupport.authorizationHeader(toolContext)).block();
     }
 
     @Tool(
@@ -79,7 +84,7 @@ public class AcademicTools {
             """
     )
     public FeeDetailResponse getFeeDetailPerItem(
-            @ToolParam(description = "Optional fee item name or keyword (e.g. Tuition Fee, Hostel Rent, SF-Library Fee)")
+          @ToolParam(description = "Optional fee item name or keyword (e.g. Tuition Fee, Hostel Rent, SF-Library Fee)")
             String item,
 
             @ToolParam(description = "Optional semester number between 0 and 10")
@@ -89,9 +94,11 @@ public class AcademicTools {
             BigDecimal minAmount,
 
             @ToolParam(description = "Optional maximum fee amount threshold")
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+            @NonNull ToolContext toolContext
     ) {
-        return feeService.getFeeDetailPerItem(item, semester, minAmount, maxAmount).block();
+        return feeService.getFeeDetailPerItem(
+                item, semester, minAmount, maxAmount, McpBearerTokenSupport.authorizationHeader(toolContext)).block();
     }
 
     @Tool(
@@ -103,8 +110,10 @@ public class AcademicTools {
     )
     public SubjectMarksResponse getSubjectMarksPerSubject(
             @ToolParam(description = "Subject code (e.g., MDS316, MDS323) or subject name (e.g., Data Mining)")
-            String subject) {
-        return academicService.getSubjectMarks(subject).block();
+            String subject,
+            @NonNull ToolContext toolContext) {
+        return academicService.getSubjectMarks(
+                subject, McpBearerTokenSupport.authorizationHeader(toolContext)).block();
     }
 
     @Tool(
@@ -116,7 +125,9 @@ public class AcademicTools {
     )
     public SubjectFacultyResponse getSubjectFacultyPerSubject(
             @ToolParam(description = "Subject code (e.g., MDS316, MDS323) or subject name (e.g., Data Mining)")
-            String subject) {
-        return academicService.getSubjectFaculty(subject).block();
+            String subject,
+            @NonNull ToolContext toolContext) {
+        return academicService.getSubjectFaculty(
+                subject, McpBearerTokenSupport.authorizationHeader(toolContext)).block();
     }
 }

@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class FeeServiceTest {
 
+    private static final String AUTHORIZATION_HEADER = "Bearer test-token";
+
     @Mock
     private FeeApiClient feeApiClient;
 
@@ -53,9 +55,9 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailsPerSemester_Success() {
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
 
-        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(5);
+        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(5, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -69,7 +71,7 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailsPerSemester_InvalidSemester() {
-        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(15);
+        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(15, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .expectError(IllegalArgumentException.class)
@@ -78,9 +80,10 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailPerItem_FilterByItem() {
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
 
-        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem("Hostel", null, null, null);
+        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem(
+                "Hostel", null, null, null, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -94,9 +97,10 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailPerItem_FilterByItemAndSemester() {
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
 
-        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem("Tuition", 5, null, null);
+        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem(
+                "Tuition", 5, null, null, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -109,10 +113,10 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailPerItem_FilterByAmountRange() {
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
 
         Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem(
-                null, null, BigDecimal.valueOf(1000), BigDecimal.valueOf(10000)
+                null, null, BigDecimal.valueOf(1000), BigDecimal.valueOf(10000), AUTHORIZATION_HEADER
         );
 
         StepVerifier.create(mono)
@@ -125,9 +129,10 @@ class FeeServiceTest {
 
     @Test
     void testGetFeeDetailPerItem_NoFiltersReturnsAll() {
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(createSampleFeeResponse()));
 
-        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem(null, null, null, null);
+        Mono<FeeDetailResponse> mono = feeService.getFeeDetailPerItem(
+                null, null, null, null, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -147,9 +152,9 @@ class FeeServiceTest {
                 1, "Sem 5", 0.0, "2025-01-01"
         );
         FeeErpResponse resp = new FeeErpResponse(List.of(item));
-        when(feeApiClient.fetchStudentFees(any(), any())).thenReturn(Mono.just(resp));
+        when(feeApiClient.fetchStudentFees(any(), any(), any())).thenReturn(Mono.just(resp));
 
-        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(5);
+        Mono<FeePerSemesterResponse> mono = feeService.getFeeDetailsPerSemester(5, AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {

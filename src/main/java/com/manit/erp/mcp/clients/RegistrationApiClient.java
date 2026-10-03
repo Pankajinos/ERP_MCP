@@ -20,11 +20,16 @@ public class RegistrationApiClient extends AbstractErpApiClient {
     }
 
     ///api/fetch_register returns a list of RegistrationErpResponse
-    public Mono<List<RegistrationErpResponse>> fetchRegistrationInfo(Integer studentUid, Integer programId) {
+    public Mono<List<RegistrationErpResponse>> fetchRegistrationInfo(
+            Integer studentUid,
+            Integer programId,
+            String authorizationHeader
+    ) {
         return executePost(
                 erpProperties.getApi().getRegistrationPath(),
                 studentUid,
                 programId,
+                authorizationHeader,
                 new ParameterizedTypeReference<List<RegistrationErpResponse>>() {},
                 "Registration"
         );

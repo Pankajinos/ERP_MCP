@@ -16,11 +16,12 @@ public class ResultApiClient extends AbstractErpApiClient {
         super(erpWebClient, erpProperties);
     }
 
-    public Mono<ResultErpResponse> fetchStudentResult(Integer studentUid, Integer programId) {
+    public Mono<ResultErpResponse> fetchStudentResult(Integer studentUid, Integer programId, String authorizationHeader) {
         return executePost(
                 erpProperties.getApi().getResultPath(),
                 studentUid,
                 programId,
+                authorizationHeader,
                 ResultErpResponse.class,
                 "Result"
         );

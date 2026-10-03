@@ -1,0 +1,101 @@
+{
+  "status": "SUCCESS",
+  "data": {
+    "Basic_Details": [
+      {
+        "full_name": "Pankaj Soni",
+        "program_code": "CSE",
+        "program_name": "Computer Science & Engineering",
+        "program_type_id_code": "1",
+        "dept_id": "10",
+        "department_name": "Computer Science & Engineering",
+        "start_session": "2022-2023",
+        "roll_no": "221112001",
+        "registration_no": "221112001",
+        "gender": "M",
+        "dob": "2002-05-15",
+        "father_name": "Ramesh Soni",
+        "mother_name": "Sunita Soni",
+        "institute_email_id": "pankaj.soni@manit.ac.in",
+        "semester_term_no_id_code": 5,
+        "semester_term_description": "Semester 5",
+        "studentuid": 4705,
+        "abc_id": "123456789012",
+        "adm_session": "2022",
+        "semester_reg_session": "2024-2025",
+        "program_master_id": 82,
+        "degree": "B.Tech",
+        "reg_semester_type_id_code": 5
+      }
+    ],
+    "Semester_Data": [
+      {
+        "status": "SUCCESS",
+        "msg": "Semester 5 Results Evaluated",
+        "data": {
+          "subjects": [
+            {
+              "subname": "Programming Lab in R",
+              "subject_code": "MDS316",
+              "total_marks": 100,
+              "marks_obtained": 88,
+              "mid_term_marks": 40,
+              "end_term_marks": 48,
+              "total_mid_term_marks": 40,
+              "total_end_term_marks": 60,
+              "grade": "A",
+              "gradePoint": "9.0",
+              "credit": "2.0",
+              "max_grade_point": 10,
+              "grade_entry_type_master_id": "1",
+              "reg_session": "2024-2025",
+              "reg_semester_type_id_code": "5",
+              "subject_master_id": 101,
+              "max_credits": "2.0",
+              "exam_month": "December",
+              "exam_year": "2024"
+            },
+            {
+              "subname": "Data Mining",
+              "subject_code": "MDS323",
+              "total_marks": 100,
+              "marks_obtained": 78,
+              "mid_term_marks": 39,
+              "end_term_marks": 39,
+              "total_mid_term_marks": 40,
+              "total_end_term_marks": 60,
+              "grade": "A",
+              "gradePoint": "9.0",
+              "credit": "3.0",
+              "max_grade_point": 10,
+              "grade_entry_type_master_id": "1",
+              "reg_session": "2024-2025",
+              "reg_semester_type_id_code": "5",
+              "subject_master_id": 102,
+              "max_credits": "3.0",
+              "exam_month": "December",
+              "exam_year": "2024"
+            }
+          ],
+          "grand_total": {
+            "total_marks": 500,
+            "marks_obtained": 430,
+            "percentage": 86.0,
+            "sgpa": "8.91",
+            "total_credits": 21,
+            "total_grade_points": 187,
+            "total_max_grade_points": 210,
+            "division": "FIRST DIVISION WITH DISTINCTION",
+            "exam_type": "REGULAR",
+            "max_credits": 21,
+            "adjusted_month": "December",
+            "adjusted_year": "2024",
+            "admission_year": "2022",
+            "pass_or_fail": "PASS",
+            "reg_session": "2024-2025"
+          }
+        }
+      }
+    ]
+  }
+}

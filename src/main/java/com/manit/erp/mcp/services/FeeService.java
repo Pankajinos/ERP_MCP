@@ -8,12 +8,13 @@ import java.math.BigDecimal;
 
 public interface FeeService {
 
-    Mono<FeePerSemesterResponse> getFeeDetailsPerSemester(int semester);
+    Mono<FeePerSemesterResponse> getFeeDetailsPerSemester(int semester, String authorizationHeader);
 
     Mono<FeeDetailResponse> getFeeDetailPerItem(
             String item,
             Integer semester,
             BigDecimal minAmount,
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+            String authorizationHeader
     );
 }

@@ -16,11 +16,12 @@ public class FeeApiClient extends AbstractErpApiClient {
         super(erpWebClient, erpProperties);
     }
 
-    public Mono<FeeErpResponse> fetchStudentFees(Integer studentUid, Integer programId) {
+    public Mono<FeeErpResponse> fetchStudentFees(Integer studentUid, Integer programId, String authorizationHeader) {
         return executePost(
                 erpProperties.getApi().getFeePath(),
                 studentUid,
                 programId,
+                authorizationHeader,
                 FeeErpResponse.class,
                 "Fee"
         );

@@ -39,10 +39,12 @@ public abstract class AbstractErpApiClient {
             String uriPath,
             Integer studentUid,
             Integer programId,
+            String authorizationHeader,
             Class<T> responseClass,
             String apiName
     ) {
-        return executePostInternal(uriPath, studentUid, programId, spec -> spec.bodyToMono(responseClass), apiName);
+        return executePostInternal(uriPath, studentUid, programId, authorizationHeader,
+                spec -> spec.bodyToMono(responseClass), apiName);
     }
 
     /**
@@ -52,19 +54,26 @@ public abstract class AbstractErpApiClient {
             String uriPath,
             Integer studentUid,
             Integer programId,
+            String authorizationHeader,
             ParameterizedTypeReference<T> responseType,
             String apiName
     ) {
-        return executePostInternal(uriPath, studentUid, programId, spec -> spec.bodyToMono(responseType), apiName);
+        return executePostInternal(uriPath, studentUid, programId, authorizationHeader,
+                spec -> spec.bodyToMono(responseType), apiName);
     }
 
     private <T> Mono<T> executePostInternal(
             String uriPath,
             Integer studentUid,
             Integer programId,
+            String authorizationHeader,
             Function<WebClient.ResponseSpec, Mono<T>> bodyExtractor,
             String apiName
     ) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return Mono.error(new IllegalArgumentException("A Bearer Authorization header is required"));
+        }
+
         Integer uid = (studentUid != null) ? studentUid : erpProperties.getApi().getDefaultStudentUid();
         Integer pid = (programId != null) ? programId : erpProperties.getApi().getDefaultProgramId();
         ErpApiRequest requestPayload = new ErpApiRequest(uid, pid);
@@ -74,7 +83,7 @@ public abstract class AbstractErpApiClient {
         return bodyExtractor.apply(
                 erpWebClient.method(HttpMethod.POST)
                         .uri(uriPath)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + erpProperties.getApi().getAuthToken())
+                        .header(HttpHeaders.AUTHORIZATION, authorizationHeader)
                         .bodyValue(requestPayload)
                         .retrieve()
         )

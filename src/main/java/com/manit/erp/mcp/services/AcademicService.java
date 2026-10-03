@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 
 public interface AcademicService {
 
-    Mono<SubjectMarksResponse> getSubjectMarks(String subject);
+    Mono<SubjectMarksResponse> getSubjectMarks(String subject, String authorizationHeader);
 
-    Mono<SubjectFacultyResponse> getSubjectFaculty(String subject);
+    Mono<SubjectFacultyResponse> getSubjectFaculty(String subject, String authorizationHeader);
 }

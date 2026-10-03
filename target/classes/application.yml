@@ -1,0 +1,43 @@
+#For running server on HTTP SSE
+server:
+  port: 8080
+
+spring:
+  application:
+    name: student-erp-mcp-server
+  main:
+    banner-mode: "off"
+#    web-application-type: none        #enable when you run server on stdio (means our server is a child process of some other program)
+    web-application-type: reactive
+  ai:
+    mcp:
+      server:
+        name: student-erp-mcp-server
+        version: 1.0.0
+#        stdio: true
+        sse: true     # Enable SSE transport
+        sse-endpoint: /mcp/sse
+        sse-message-endpoint: /mcp/message
+
+erp:
+  api:
+    base-url: https://erpapi.manit.ac.in/api
+    result-path: /student_result
+    registration-path: /fetch_register
+    fee-path: /student_fees
+    default-student-uid: ${STUDENT_UID:4705}
+    default-program-id: ${PROGRAM_ID:82}
+  client:
+    connect-timeout-ms: 5000
+    read-timeout-ms: 10000
+    max-retry-attempts: 3
+    backoff-period-ms: 1000
+
+logging:
+  level:
+    root: INFO
+    com.manit.erp.mcp: DEBUG
+    org.springframework.ai.mcp: INFO
+    org.springframework.web.reactive.function.client: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

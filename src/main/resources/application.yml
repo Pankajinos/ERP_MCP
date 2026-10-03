@@ -8,7 +8,7 @@ spring:
   main:
     banner-mode: "off"
 #    web-application-type: none        #enable when you run server on stdio (means our server is a child process of some other program)
-    web-application-type: servlet
+    web-application-type: reactive
   ai:
     mcp:
       server:
@@ -16,6 +16,7 @@ spring:
         version: 1.0.0
 #        stdio: true
         sse: true     # Enable SSE transport
+        sse-endpoint: /mcp/sse
         sse-message-endpoint: /mcp/message
 
 erp:
@@ -24,7 +25,6 @@ erp:
     result-path: /student_result
     registration-path: /fetch_register
     fee-path: /student_fees
-    auth-token: ${ERP_AUTH_TOKEN:${ERP_AUTH_TOKEN:mock-bearer-token-12345}}
     default-student-uid: ${STUDENT_UID:4705}
     default-program-id: ${PROGRAM_ID:82}
   client:

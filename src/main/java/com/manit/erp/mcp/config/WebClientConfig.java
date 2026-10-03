@@ -58,8 +58,8 @@ public class WebClientConfig {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
             log.debug("Outgoing ERP Request: [{}] {}", clientRequest.method(), clientRequest.url());
             String auth = clientRequest.headers().getFirst(HttpHeaders.AUTHORIZATION);
-            if (auth == null || auth.isBlank() || auth.contains("mock-bearer-token-12345")) {
-                log.warn("⚠️ ERP API call using missing or mock token! Ensure ERP_AUTH_TOKEN is configured with a valid token.");
+            if (auth == null || auth.isBlank()) {
+                log.warn("ERP API request is missing the client's Authorization header");
             }
             return Mono.just(clientRequest);
         });

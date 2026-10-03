@@ -26,12 +26,12 @@ public class FeeServiceImpl implements FeeService {
     private final ErpDataMapper erpDataMapper;
 
     @Override
-    public Mono<FeePerSemesterResponse> getFeeDetailsPerSemester(int semester) {
+    public Mono<FeePerSemesterResponse> getFeeDetailsPerSemester(int semester, String authorizationHeader) {
         log.info("Processing getFeeDetailsPerSemester for semester: {}", semester);
         if (semester < 0 || semester > 10) {
             return Mono.error(new IllegalArgumentException("Semester must be between 0 and 10."));
         }
-        return feeApiClient.fetchStudentFees(null, null)
+        return feeApiClient.fetchStudentFees(null, null, authorizationHeader)
                 .map(feeErp -> erpDataMapper.toFeePerSemester(semester, feeErp));
     }
 
@@ -40,7 +40,8 @@ public class FeeServiceImpl implements FeeService {
             String item,
             Integer semester,
             BigDecimal minAmount,
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+            String authorizationHeader
     ) {
         log.info("Processing getFeeDetailPerItem with filters - item: {}, semester: {}, minAmount: {}, maxAmount: {}",
                 item, semester, minAmount, maxAmount);
@@ -49,7 +50,7 @@ public class FeeServiceImpl implements FeeService {
             return Mono.error(new IllegalArgumentException("Semester must be between 0 and 10."));
         }
 
-        return feeApiClient.fetchStudentFees(null, null)
+        return feeApiClient.fetchStudentFees(null, null, authorizationHeader)
                 .map(feeErp -> erpDataMapper.toFeeDetailResponse(item, semester, minAmount, maxAmount, feeErp));
     }
 }

@@ -26,6 +26,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AcademicServiceTest {
 
+    private static final String AUTHORIZATION_HEADER = "Bearer test-token";
+
     @Mock
     private ResultApiClient resultApiClient;
 
@@ -64,9 +66,9 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectMarks_SuccessByCode() {
-        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
+        when(resultApiClient.fetchStudentResult(any(), any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
 
-        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("MDS323");
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("MDS323", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -83,9 +85,9 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectMarks_SuccessByName() {
-        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
+        when(resultApiClient.fetchStudentResult(any(), any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
 
-        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("data mining");
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("data mining", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -96,9 +98,9 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectMarks_NotFound() {
-        when(resultApiClient.fetchStudentResult(any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
+        when(resultApiClient.fetchStudentResult(any(), any(), any())).thenReturn(Mono.just(createSampleResultResponse()));
 
-        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("NON_EXISTENT");
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("NON_EXISTENT", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .expectError(ResourceNotFoundException.class)
@@ -107,7 +109,7 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectMarks_EmptyInput() {
-        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("");
+        Mono<SubjectMarksResponse> mono = academicService.getSubjectMarks("", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .expectError(IllegalArgumentException.class)
@@ -116,9 +118,9 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectFaculty_SuccessByCode() {
-        when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
+        when(registrationApiClient.fetchRegistrationInfo(any(), any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
 
-        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("MDS323");
+        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("MDS323", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .assertNext(res -> {
@@ -142,9 +144,9 @@ class AcademicServiceTest {
                 "Student", "M", "12345", "Department of Mathematics, Bioinformatics and Computer Applications",
                 List.of(subject)
             );
-            when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(List.of(registration)));
+            when(registrationApiClient.fetchRegistrationInfo(any(), any(), any())).thenReturn(Mono.just(List.of(registration)));
 
-            StepVerifier.create(academicService.getSubjectFaculty("MDS321"))
+            StepVerifier.create(academicService.getSubjectFaculty("MDS321", AUTHORIZATION_HEADER))
                 .assertNext(res -> {
                     assertEquals("Optimization Technique", res.subjectName());
                     assertEquals("Dr. Madhvi Shakya", res.facultyName());
@@ -156,9 +158,9 @@ class AcademicServiceTest {
 
     @Test
     void testGetSubjectFaculty_NotFound() {
-        when(registrationApiClient.fetchRegistrationInfo(any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
+        when(registrationApiClient.fetchRegistrationInfo(any(), any(), any())).thenReturn(Mono.just(createSampleRegistrationResponse()));
 
-        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("INVALID_CODE");
+        Mono<SubjectFacultyResponse> mono = academicService.getSubjectFaculty("INVALID_CODE", AUTHORIZATION_HEADER);
 
         StepVerifier.create(mono)
                 .expectError(ResourceNotFoundException.class)

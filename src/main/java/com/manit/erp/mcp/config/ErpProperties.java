@@ -34,7 +34,6 @@ public class ErpProperties {
         private String resultPath = "/student_result";
         private String registrationPath = "/fetch_register";
         private String feePath = "/student_fees";
-        private String authToken = "";
         private Integer defaultStudentUid = 4705;
         private Integer defaultProgramId = 82;
 
@@ -68,23 +67,6 @@ public class ErpProperties {
 
         public void setFeePath(String feePath) {
             this.feePath = feePath;
-        }
-
-        public String getAuthToken() {
-            if (authToken != null && authToken.regionMatches(true, 0, "bearer ", 0, 7)) {
-                return authToken.substring(7).trim();
-            }
-            return authToken != null ? authToken.trim() : "";
-        }
-
-        public void setAuthToken(String authToken) {
-            if (authToken != null) {
-                authToken = authToken.trim();
-                if (authToken.regionMatches(true, 0, "bearer ", 0, 7)) {
-                    authToken = authToken.substring(7).trim();
-                }
-            }
-            this.authToken = authToken;
         }
 
         public Integer getDefaultStudentUid() {

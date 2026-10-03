@@ -27,24 +27,24 @@ public class AcademicServiceImpl implements AcademicService {
 
 
     @Override
-    public Mono<SubjectMarksResponse> getSubjectMarks(String subject) {
+    public Mono<SubjectMarksResponse> getSubjectMarks(String subject, String authorizationHeader) {
         log.info("Processing getSubjectMarks for subject: {}", subject);
         if (subject == null || subject.isBlank()) {
             return Mono.error(new IllegalArgumentException("Subject code or name must not be empty."));
         }
 
-        return resultApiClient.fetchStudentResult(null, null)
+        return resultApiClient.fetchStudentResult(null, null, authorizationHeader)
                 .map(resultErp -> erpDataMapper.toSubjectMarks(subject, resultErp));
     }
 
     @Override
-    public Mono<SubjectFacultyResponse> getSubjectFaculty(String subject) {
+    public Mono<SubjectFacultyResponse> getSubjectFaculty(String subject, String authorizationHeader) {
         log.info("Processing getSubjectFaculty for subject: {}", subject);
         if (subject == null || subject.isBlank()) {
             return Mono.error(new IllegalArgumentException("Subject code or name must not be empty."));
         }
 
-        return registrationApiClient.fetchRegistrationInfo(null, null)
+        return registrationApiClient.fetchRegistrationInfo(null, null, authorizationHeader)
                 .map(regList -> erpDataMapper.toSubjectFaculty(subject, regList));
     }
 }
